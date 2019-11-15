@@ -1,16 +1,25 @@
 import json
+import numpy as np
 import pandas as pd
 from edgar.financials import FinancialReportEncoder
 from edgar.stock import Stock
+'''
+https://www.pingshiuanchua.com/blog/post/intro-to-colaboratory-and-linking-it-to-google-sheets
+https://www.pingshiuanchua.com/blog/post/overpower-your-google-sheets-with-python
 
+'''
 
-def getData(ticket, type, period='annual', year=0, quarter=0):
+def getData(ticket, type, period='annual', year=20188, quarter=0):
     # period = 'annual' # or 'quarterly', which is the default
     # year = 2018 # can use default of 0 to get the latest
     # quarter = 1 # 1, 2, 3, 4, or default value of 0 to get the latest
 
     stock = Stock(ticket)
-    filing = stock.get_filing(period, year, quarter)
+    try:
+        filing = stock.get_filing(period, year, quarter)
+    except:
+        print('Invalid input')
+        return None, False
 
     # financial reports (contain data for multiple years)
     if type == 'income_statements':
@@ -48,8 +57,11 @@ def getData(ticket, type, period='annual', year=0, quarter=0):
                             data.append(report['map'][map_key][key])
 
     sec_data = pd.DataFrame([data], columns=columns)
+    sec_data = sec_data.append(pd.Series(), ignore_index=True)
+    sec_data = sec_data.transpose()
+
     map_data = pd.Series(map_keys)
-    return sec_data, map_data
+    return sec_data, True
 
 
 final_df = pd.DataFrame()
@@ -62,24 +74,28 @@ cmpList = ['AAL', 'AAPL', 'ADBE', 'ADI', 'ADP', 'ADSK', 'ALGN', 'ALXN', 'AMAT', 
            'SIRI', 'SNPS', 'STX', 'SWKS', 'SYMC', 'TMUS', 'TSLA', 'TTWO', 'TXN', 'ULTA', 'VOD', 'VRSK', 'VRTX', 'WBA',
            'WDAY', 'WDC', 'WYNN', 'XLNX', 'XRAY']
 
-cmpList = ['AAL', 'AAPL', 'ADBE']
+cmpList = ['AAL']
 
 print('Total companies', len(cmpList))
 
 types = ['income_statements', 'balance_sheets', 'cash_flows']
-for type in types:
-    writer = pd.ExcelWriter('results/results_' + type + '.xlsx', engine='xlsxwriter')
-    writer_cols = pd.ExcelWriter('results/columns_' + type + '.xlsx', engine='xlsxwriter')
-    column_size = []
-    for cmp in cmpList:
-        cmp_df, map_df = getData(cmp, type)
-        cmp_df.to_excel(writer, sheet_name=cmp, index=False)
-        map_df.to_excel(writer_cols, sheet_name=cmp, index=False, header=False)
-        column_size.append((cmp, cmp_df.shape[1]))
+years = [2019, 2018, 2017, 2016]
 
+for cmp in cmpList:
+    cmp_df = pd.DataFrame()
+    cmp_df['ind'] = np.arange(len(cmp_df))
+    cmp_df.set_index("ind", inplace=True)
+    for type in types:
+        writer = pd.ExcelWriter('results/results.xlsx', engine='xlsxwriter')
+        for yr in years:
+            typedf, valid = getData(cmp, type, year = yr)
+            if valid:
+                typedf['ind'] = np.arange(len(typedf))
+                typedf.set_index("ind", inplace=True)
+                print('concat', cmp_df.shape, typedf.shape)
+                # cmp_df = pd.concat([cmp_df,typedf], ignore_index=True, axis = 1)
+                cmp_df.merge(typedf, how="outer", left_index=True, right_index=True)
+                print('concat done', cmp_df.shape)
+    cmp_df.to_excel(writer, sheet_name=cmp)
     writer.save()
     writer.close()
-    writer_cols.save()
-    writer_cols.close()
-
-    print('Column Size',type, column_size)
