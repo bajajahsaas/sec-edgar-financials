@@ -32,8 +32,12 @@ class Stock:
         :param quarter: 1, 2, 3, 4, or default value of 0 to get the latest
         '''
         filing_info_list = get_financial_filing_info(period=period, cik=self.cik, year=year, quarter=quarter)
+        print('filing_info_list size', len(filing_info_list))
 
         if len(filing_info_list) == 0:
+            raise NoFilingInfoException(
+                'No filing info found. Try a different period (annual/quarterly), year, and/or quarter.')
+            '''
             # get the latest
             current_year = datetime.now().year if year == 0 else year
             current_quarter = quarter if quarter > 0 else get_latest_quarter_dir(current_year)[0]
@@ -52,7 +56,7 @@ class Stock:
             if len(filing_info_list) == 0:
                 # still not successful, throw hands up and quit
                 raise NoFilingInfoException('No filing info found. Try a different period (annual/quarterly), year, and/or quarter.')
-
+            '''
         filing_info = filing_info_list[0]
 
         url = filing_info.url

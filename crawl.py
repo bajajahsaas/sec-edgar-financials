@@ -13,6 +13,8 @@ from edgar.stock import Stock
 https://www.pingshiuanchua.com/blog/post/intro-to-colaboratory-and-linking-it-to-google-sheets
 https://www.pingshiuanchua.com/blog/post/overpower-your-google-sheets-with-python
 
+https://github.com/farhadab/sec-edgar-financials
+
 '''
 
 def getData(ticket, ty, period='annual', year=2018, quarter=0):
@@ -89,7 +91,7 @@ print('Total companies', len(cmpList))
 # years = [2019, 2018, 2017, 2016]
 
 types = ['income_statements']
-years = [2019]
+years = [2018]
 
 writer = pd.ExcelWriter('results/results.xlsx', engine='xlsxwriter')
 
@@ -101,9 +103,9 @@ for cmp in cmpList:
     for ty in types:
         for yr in years:
             print('Company: ', cmp)
-            typedf, valid = getData(cmp, ty, year = yr)
+            typedf, valid = getData(cmp, ty, period='annual', year=yr, quarter=4)
             if valid:
-                cmp_df = pd.concat([cmp_df,typedf], axis = 1)
+                cmp_df = pd.concat([cmp_df,typedf], axis=1)
                 columns.append(str(ty) + '_' + str(yr))
                 columns.append(str(ty) + '_' + str(yr))
     

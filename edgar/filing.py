@@ -18,6 +18,8 @@ class Statements:
     # To resolve "could not find anything for ShortName..." error, likely need
     # to add the appropriate ShortName from the FilingSummary.xml here.
     # TODO: perhaps add guessing/best match functionality to limit this list
+
+    '''
     income_statements = ['consolidated statements of income',
                     'consolidated statements of operations',
                     'consolidated statement of earnings',
@@ -46,6 +48,13 @@ class Statements:
                     'condensed consolidated statements of cash flows',
                     'condensed statements of cash flows'
                     ]
+    '''
+
+    income_statements = ['consolidated statements of income', 'consolidated statements of operations', 'consolidated statement of earnings']
+
+    balance_sheets = ['consolidated balance sheets', 'consolidated statement of financial position']
+
+    cash_flows = ['consolidated statements of cash flows']
 
     all_statements = income_statements + balance_sheets + cash_flows
 
@@ -64,12 +73,14 @@ class Filing:
 
         response = GetRequest(url).response
         text = response.text
-        
+
         self.text = text
 
         print('Processing SGML at '+url)
-        
+
+        print('Getting DTD')
         dtd = DTD()
+        print('Completed DTD')
         sgml = Sgml(text, dtd)
 
         self.sgml = sgml

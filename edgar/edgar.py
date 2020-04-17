@@ -36,8 +36,11 @@ SYMBOLS_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'd
 
 
 FINANCIAL_FORM_MAP = {
-    'annual': ['10-K','10-K/A'],
-    'quarterly': ['10-Q','10-Q/A'],
+    # 'annual': ['10-K','10-K/A'],
+    # 'quarterly': ['10-Q','10-Q/A'],
+
+    'annual': ['10-K'],
+    'quarterly': ['10-Q'],
 }
 SUPPORTED_FORMS = FINANCIAL_FORM_MAP['annual'] + FINANCIAL_FORM_MAP['quarterly'] + ['3', '4', '5']
 
@@ -149,6 +152,7 @@ def get_filing_info(cik='', forms=[], year=0, quarter=0):
     period
     '''
     current_year = datetime.now().year
+    print('get_filing_info')
 
     if year!=0 and ((len(str(year)) != 4) or year < EDGAR_MIN_YEAR or year > current_year):
         raise InvalidInputException('{} is not a supported year'.format(year))
@@ -188,6 +192,7 @@ def _get_filing_info(cik='', forms=[], year='', quarter=''):
         return row.split('|')
 
     def _add_filing_info(filing_infos, data, forms):
+
         '''
         Adds a FilingInfo from data to a list
 
@@ -195,6 +200,7 @@ def _get_filing_info(cik='', forms=[], year='', quarter=''):
             0=cik, 1=company, 2=form, 3=date_filed, 4=file_name 
         '''
         if len(data) == 5 and (forms == [] or data[2] in forms):
+            print('Adding {0} element to filing_infos'.format(len(filing_infos) + 1))
             # Form Type should among forms or forms be default (all)
             filing_infos.append(FilingInfo(
                         data[1], # Company Name
@@ -204,6 +210,7 @@ def _get_filing_info(cik='', forms=[], year='', quarter=''):
                         data[4].strip() # File Name
                     ))
 
+    print('_get_filing_info, cik: ', cik)
     for form in forms:
         if form not in SUPPORTED_FORMS:
             raise InvalidInputException('{} is not a supported form'.format(form))
@@ -221,6 +228,7 @@ def _get_filing_info(cik='', forms=[], year='', quarter=''):
     filing_infos = []
 
     if cik != '':
+        print('Binary searching for cik:', cik)
         # binary search to get company's filing info
         start = 0
         end = len(data_rows)
@@ -233,7 +241,11 @@ def _get_filing_info(cik='', forms=[], year='', quarter=''):
             # e.g. 11 > 100
             if data[0] == cik:
                 # matched cik
+                print('Matched CIK')
                 _add_filing_info(filing_infos, data, forms)
+                if len(filing_infos) > 0:  # break if adding successful bcoz we only use one.
+                    print('Found one element, break')
+                    break
 
                 # get all before and after (there can be multiple)
                 # go backwards to get those before
@@ -241,17 +253,27 @@ def _get_filing_info(cik='', forms=[], year='', quarter=''):
                 data = _get_raw_data(data_rows[index])
                 while data[0] == cik and index >= 0:
                     _add_filing_info(filing_infos, data, forms)
+                    if len(filing_infos) > 0:
+                        print('Found one element, break')
+                        break
                     index -= 1
                     data = _get_raw_data(data_rows[index])
 
+                if len(filing_infos) > 0:
+                    break
                 # after
                 index = mid + 1
                 data = _get_raw_data(data_rows[index])
                 while data[0] == cik and index < len(data_rows):
                     _add_filing_info(filing_infos, data, forms)
+                    if len(filing_infos) > 0:
+                        print('Found one element, break')
+                        break
                     index += 1
                     data = _get_raw_data(data_rows[index])
 
+
+                print('Breaking binary search')
                 break
 
             elif data[0] < cik:
@@ -264,12 +286,14 @@ def _get_filing_info(cik='', forms=[], year='', quarter=''):
             data = _get_raw_data(row)
             _add_filing_info(filing_infos, data, forms)
 
-
+    # should be just one
+    print('Length of filing_infos returned:', len(filing_infos))
     return filing_infos
 
 
 
 def get_financial_filing_info(period, cik, year='', quarter=''):
+    print('get_financial_filing_info')
     if period not in FINANCIAL_FORM_MAP:
         raise KeyError('period must be either "annual" or "quarterly"')
 
